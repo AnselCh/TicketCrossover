@@ -30,8 +30,8 @@ class _MyAppState extends State<MyApp> {
   late Future<String> futureHtmlContent;
 
   Future<String> get _localPath async {
-    final directory = Directory('./');
-    print(directory);
+    final directory = await getApplicationDocumentsDirectory();
+
     return directory.path;
   }
 
