@@ -41,6 +41,7 @@ dependencies:
   http_parser: ^4.0.2
   http: ^1.2.0
   html: ^0.15.4
+  faker: ^2.1.0
 
 dev_dependencies:
   flutter_test:
