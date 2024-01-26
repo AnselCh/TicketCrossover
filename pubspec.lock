@@ -168,6 +168,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.0"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   path:
     dependency: transitive
     description:
@@ -240,6 +248,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  provider:
+    dependency: "direct main"
+    description:
+      name: provider
+      sha256: "9a96a0a19b594dbc5bf0f1f27d2bc67d5f95957359b461cd9feb44ed6ae75096"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -329,10 +345,10 @@ packages:
     dependency: transitive
     description:
       name: webview_flutter_android
-      sha256: "161af93c2abaf94ef2192bffb53a3658b2d721a3bf99b69aa1e47814ee18cc96"
+      sha256: "4ea3c4e1b8ed590162b15b8a61b41b1ef3ff179a314627c16ce40c086d94b8af"
       url: "https://pub.dev"
     source: hosted
-    version: "3.13.2"
+    version: "3.14.0"
   webview_flutter_platform_interface:
     dependency: transitive
     description:
@@ -365,6 +381,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.2.0"
+  window_size:
+    dependency: "direct main"
+    description:
+      path: "plugins/window_size"
+      ref: HEAD
+      resolved-ref: "6c66ad23ee79749f30a8eece542cf54eaf157ed8"
+      url: "https://github.com/google/flutter-desktop-embedding.git"
+    source: git
+    version: "0.1.0"
   xdg_directories:
     dependency: transitive
     description:

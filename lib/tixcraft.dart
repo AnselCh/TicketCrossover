@@ -205,14 +205,14 @@ class _WebViewExampleState extends State<WebViewExample> {
     );
   }
 /*
-// 
+// 底部愛心icon 點選會顯示目前網址
   Widget favoriteButton() {
     return FloatingActionButton(
       onPressed: () async {
         final String? url = await _controller.currentUrl();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Favorited $url')),
+            SnackBar(content: Text('目前網址： $url')),
           );
         }
       },
