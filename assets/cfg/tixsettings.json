@@ -1,6 +1,7 @@
 {
-    "tixprovider": "tixcraft",
-    "selectedEvent": "",
+    "tixprovider": ["tixcraft", "indievox", "遠大"],
+    "selectprovider":"tixcraft",
+    "selectedEvent": "未選擇",
     "priorityDate": "",
     "numberOfTickets": 2,
     "selectedArea": "",

@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
+import 'activity_fetcher.dart';
 
 class AppConfig {
   static const String tixProviderKey = 'tixprovider';
+  static const String selectProviderKey = 'selectprovider';
   static const String selectedEventKey = 'selectedEvent';
   static const String priorityDateKey = 'priorityDate';
   static const String numberOfTicketsKey = 'numberOfTickets';
@@ -14,16 +15,25 @@ class AppConfig {
 
   static Future<void> loadAppConfig() async {
     try {
-      // 使用 loadFromAsset 加载配置文件
       await GlobalConfiguration().loadFromAsset("tixsettings.json");
-      print("Config loaded successfully");
     } catch (e) {
       print("Error loading config: $e");
     }
   }
 
-  static String get tixProvider =>
-      GlobalConfiguration().getValue(tixProviderKey);
+  static List<String> get tixProviderOptions =>
+      GlobalConfiguration().getValue(tixProviderKey)?.cast<String>();
+
+  static String get selectProvider =>
+      GlobalConfiguration().getValue(selectProviderKey);
+
+  static set selectProvider(String value) {
+    GlobalConfiguration().updateValue(selectProviderKey, value);
+  }
+
+  static set tixProviderOptions(List<String> value) {
+    GlobalConfiguration().updateValue(tixProviderKey, value);
+  }
 
   static String get selectedEvent =>
       GlobalConfiguration().getValue(selectedEventKey);
@@ -42,10 +52,6 @@ class AppConfig {
 
   static double get autoRefreshInterval =>
       GlobalConfiguration().getValue(autoRefreshIntervalKey);
-
-  static set tixProvider(String value) {
-    GlobalConfiguration().updateValue(tixProviderKey, value);
-  }
 
   static set selectedEvent(String value) {
     GlobalConfiguration().updateValue(selectedEventKey, value);
@@ -87,9 +93,7 @@ class _SettingConfigState extends State<SettingConfig> {
     super.initState();
     _timer = Timer(Duration(milliseconds: 200), () {});
 
-    // 加載配置文件
     AppConfig.loadAppConfig().then((_) {
-      // 在配置文件加載完成後，刷新頁面
       setState(() {});
     });
   }
@@ -104,6 +108,48 @@ class _SettingConfigState extends State<SettingConfig> {
     _timer.cancel();
   }
 
+  void _navigateToActivitySelect() async {
+    // 判斷 App 選擇的提供者
+    if (AppConfig.selectProvider != "tixcraft") {
+      // 提示不支援的信息
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('目前不支援${AppConfig.selectProvider}'),
+          content: Text('拜託抖內我'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('確定'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 等待 fetchActivityInfo 完成
+    List<ActivityInfo> activityList = await ActivityFetcher.fetchActivityInfo();
+
+    // 導航到新的頁面，並將活動列表傳遞給該頁面
+    final selectedActivity = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ActivityListPage(activityList: activityList),
+      ),
+    );
+
+    // 在這裡處理選擇的活動，例如更新相應的變數
+    if (selectedActivity != null && selectedActivity is ActivityInfo) {
+      setState(() {
+        // 更新相應的變數，例如：
+        AppConfig.selectedEvent = selectedActivity.activityUrl;
+        print(AppConfig.selectedEvent);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -112,30 +158,37 @@ class _SettingConfigState extends State<SettingConfig> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('選擇售票平台:'),
-          TextField(
+          DropdownButton<String>(
+            value: AppConfig.selectProvider,
+            items: AppConfig.tixProviderOptions.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
             onChanged: (value) {
               setState(() {
-                AppConfig.tixProvider = value ?? '';
-              });
-            },
-            controller: TextEditingController(text: AppConfig.tixProvider),
-          ),
-          Text('選擇活動:'),
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                AppConfig.selectedEvent = value ?? '';
+                AppConfig.selectProvider = value ?? '';
               });
             },
           ),
-          SizedBox(height: 16.0),
-          Text('優先日期:'),
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                AppConfig.priorityDate = value ?? '';
-              });
-            },
+          Text('選擇活動:(載入需要一點時間)'),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  AppConfig.selectedEvent ?? '未選擇',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.event), // 使用您希望的圖標
+                onPressed: () {
+                  // 在這裡調用導航方法
+                  _navigateToActivitySelect();
+                },
+              ),
+            ],
           ),
           SizedBox(height: 16.0),
           Text('幾張票:'),
@@ -278,6 +331,43 @@ class _SettingConfigState extends State<SettingConfig> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ActivityListPage extends StatelessWidget {
+  final List<ActivityInfo> activityList;
+
+  const ActivityListPage({Key? key, required this.activityList})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('選擇活動'),
+      ),
+      body: ListView.builder(
+        itemCount: activityList.length,
+        itemBuilder: (context, index) {
+          var activity = activityList[index];
+          return ListTile(
+            title: Text(activity.activityName),
+            subtitle: Text(activity.activityUrl), // 顯示日期或其他相關信息
+            leading: Image.network(
+              activity.imageUrl,
+              width: MediaQuery.of(context).size.width * 0.2,
+              height: MediaQuery.of(context).size.width * 0.2,
+              fit: BoxFit.cover,
+            ),
+            onTap: () {
+              // 在這裡處理選擇活動的邏輯，例如將選擇的活動資訊存儲到全局變數中
+              // 並返回到上一個設置頁面
+              Navigator.pop(context, activity); // 將選擇的活動作為返回結果
+            },
+          );
+        },
       ),
     );
   }
