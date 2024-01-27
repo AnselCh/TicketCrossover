@@ -18,9 +18,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
 
-import 'data_transfer_page.dart';
+import 'tixcraft.dart';
+import 'settinconfig.dart';
 import 'infinite_process_page.dart';
-import 'performance_page.dart';
 
 void main() {
   setupWindow();
@@ -75,7 +75,7 @@ class HomePage extends StatelessWidget {
           ),
           body: const TabBarView(
             children: [
-              PerformancePage(),
+              SettingConfig(),
               InfiniteProcessPageStarter(),
               //DataTransferPageStarter(),
             ],
