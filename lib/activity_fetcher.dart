@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
+import 'settinconfig.dart';
 
 class ActivityInfo {
   String imageUrl;
@@ -67,6 +68,50 @@ class ActivityFetcher {
       }
     } else {
       throw Exception('取得活動失敗');
+    }
+  }
+}
+
+class ActivityDateFetcher {
+  static const String tixUrl = "https://tixcraft.com";
+
+  static Future<List<String>> fetchActivityDateList() async {
+    try {
+      // 使用 selectedEvent 獲取完整的活動 URL
+      String modifiedUrl =
+          AppConfig.selectedEvent.replaceAll('/detail/', '/game/');
+
+      final String fullUrl = '$tixUrl$modifiedUrl';
+      print(fullUrl);
+
+      // 發送 HTTP GET 請求
+      final response = await http.get(Uri.parse(fullUrl));
+
+      if (response.statusCode == 200) {
+        // 解析 HTML
+        var document = parse(response.body);
+
+        // 找到所有的 td 元素
+        var tdElements = document.querySelectorAll('tr.gridc td');
+
+        if (tdElements.isNotEmpty) {
+          // 提取演出時間的部分
+          List<String> dateList = [];
+          for (var i = 0; i < tdElements.length; i += 4) {
+            var dateTimeText = tdElements[i].text.trim();
+            // 在這裡你可以進行進一步的處理，例如將字串轉換為 DateTime 對象
+            dateList.add(dateTimeText);
+          }
+
+          return dateList;
+        } else {
+          throw Exception('找不到演出時間元素');
+        }
+      } else {
+        throw Exception('取得活動日期失敗');
+      }
+    } catch (e) {
+      throw Exception('發生錯誤: $e');
     }
   }
 }

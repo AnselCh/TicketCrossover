@@ -3,14 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'activity_fetcher.dart';
 
+var selectedEventName = '';
+
 class AppConfig {
   static const String tixProviderKey = 'tixprovider';
   static const String selectProviderKey = 'selectprovider';
+  //購買網址
   static const String selectedEventKey = 'selectedEvent';
+  //活動日期
   static const String priorityDateKey = 'priorityDate';
+  //數量
   static const String numberOfTicketsKey = 'numberOfTickets';
+  //區域
   static const String selectedAreaKey = 'selectedArea';
+  //問答題
   static const String defaultAnswerKey = 'defaultAnswer';
+  //刷新秒數
   static const String autoRefreshIntervalKey = 'autoRefreshInterval';
 
   static Future<void> loadAppConfig() async {
@@ -66,7 +74,7 @@ class AppConfig {
   }
 
   static set selectedArea(String value) {
-    GlobalConfiguration().updateValue(tixProviderKey, value);
+    GlobalConfiguration().updateValue(selectedAreaKey, value);
   }
 
   static set defaultAnswer(String value) {
@@ -91,7 +99,6 @@ class _SettingConfigState extends State<SettingConfig> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(Duration(milliseconds: 200), () {});
 
     AppConfig.loadAppConfig().then((_) {
       setState(() {});
@@ -145,193 +152,291 @@ class _SettingConfigState extends State<SettingConfig> {
       setState(() {
         // 更新相應的變數，例如：
         AppConfig.selectedEvent = selectedActivity.activityUrl;
+        selectedEventName = selectedActivity.activityName;
         print(AppConfig.selectedEvent);
       });
     }
   }
 
-  @override
+  Future<void> _selectDate(BuildContext context) async {
+    // 調用 fetchActivityDate 獲取日期列表
+    List<String> dateList = await ActivityDateFetcher.fetchActivityDateList();
+
+    // 如果沒有日期，顯示提示信息
+    if (dateList.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('沒有可用的活動日期'),
+          content: Text('請稍後再試或選擇其他活動'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('確定'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 讓使用者從日期列表中選擇日期
+    String? selectedDate = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('選擇活動日期'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: dateList.map((date) {
+            return ListTile(
+              title: Text(date),
+              onTap: () {
+                Navigator.pop(context, date);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+
+    // 如果使用者選擇了日期，更新 UI
+    if (selectedDate != null) {
+      setState(() {
+        AppConfig.priorityDate = selectedDate;
+      });
+    }
+  }
+
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('選擇售票平台:'),
-          DropdownButton<String>(
-            value: AppConfig.selectProvider,
-            items: AppConfig.tixProviderOptions.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                AppConfig.selectProvider = value ?? '';
-              });
-            },
-          ),
-          Text('選擇活動:(載入需要一點時間)'),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  AppConfig.selectedEvent ?? '未選擇',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.event), // 使用您希望的圖標
-                onPressed: () {
-                  // 在這裡調用導航方法
-                  _navigateToActivitySelect();
-                },
-              ),
-            ],
-          ),
-          SizedBox(height: 16.0),
-          Text('幾張票:'),
-          Row(
-            children: [
-              GestureDetector(
-                onLongPress: () {
-                  _startTimer(() {
-                    setState(() {
-                      AppConfig.numberOfTickets =
-                          (AppConfig.numberOfTickets > 0)
-                              ? AppConfig.numberOfTickets - 1
-                              : 0;
-                    });
+          _buildSection(
+            title: '選擇售票平台:',
+            child: Container(
+              width: 200.0,
+              child: DropdownButton<String>(
+                value: AppConfig.selectProvider,
+                items: AppConfig.tixProviderOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    AppConfig.selectProvider = value ?? '';
                   });
                 },
-                onLongPressUp: () {
-                  _stopTimer();
-                },
-                child: IconButton(
-                  icon: Icon(Icons.remove),
-                  onPressed: () {
-                    setState(() {
-                      AppConfig.numberOfTickets =
-                          (AppConfig.numberOfTickets > 0)
-                              ? AppConfig.numberOfTickets - 1
-                              : 1;
-                    });
-                  },
-                ),
               ),
-              Text('${AppConfig.numberOfTickets}'),
-              GestureDetector(
-                onLongPress: () {
-                  _startTimer(() {
-                    setState(() {
-                      AppConfig.numberOfTickets =
-                          (AppConfig.numberOfTickets < 5)
-                              ? AppConfig.numberOfTickets + 1
-                              : 5;
-                    });
-                  });
-                },
-                onLongPressUp: () {
-                  _stopTimer();
-                },
-                child: IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: () {
-                    setState(() {
-                      AppConfig.numberOfTickets =
-                          (AppConfig.numberOfTickets < 5)
-                              ? AppConfig.numberOfTickets + 1
-                              : 5;
-                    });
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-          SizedBox(height: 16.0),
-          Text('優先區域選擇:'),
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                AppConfig.selectedArea = value ?? '';
-              });
-            },
-          ),
-          SizedBox(height: 16.0),
-          Text('預設問答題的答案:'),
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                AppConfig.defaultAnswer = value ?? '';
-              });
-            },
-          ),
-          SizedBox(height: 16.0),
-          Text('自動重新整理秒數:'),
-          Row(
-            children: [
-              GestureDetector(
-                onLongPress: () {
-                  _startTimer(() {
-                    setState(() {
-                      AppConfig.autoRefreshInterval =
-                          (AppConfig.autoRefreshInterval > 0)
-                              ? (AppConfig.autoRefreshInterval - 0.1)
-                                  .clamp(0.1, 5.0)
-                              : 0.1;
-                    });
-                  });
-                },
-                onLongPressUp: () {
-                  _stopTimer();
-                },
-                child: IconButton(
-                  icon: Icon(Icons.remove),
+          _buildSection(
+            title: '選擇活動:(載入需要一點時間)',
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedEventName ?? '未選擇',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.event_available),
                   onPressed: () {
-                    setState(() {
-                      AppConfig.autoRefreshInterval =
-                          (AppConfig.autoRefreshInterval > 0)
-                              ? (AppConfig.autoRefreshInterval - 0.1)
-                                  .clamp(0.1, 5.0)
-                              : 0.1;
-                    });
+                    _navigateToActivitySelect();
                   },
                 ),
-              ),
-              Text('${AppConfig.autoRefreshInterval.toStringAsFixed(1)}'),
-              GestureDetector(
-                onLongPress: () {
-                  _startTimer(() {
-                    setState(() {
-                      AppConfig.autoRefreshInterval =
-                          (AppConfig.autoRefreshInterval < 5)
-                              ? (AppConfig.autoRefreshInterval + 0.1)
-                                  .clamp(0.1, 5.0)
-                              : 5.0;
-                    });
-                  });
-                },
-                onLongPressUp: () {
-                  _stopTimer();
-                },
-                child: IconButton(
-                  icon: Icon(Icons.add),
-                  onPressed: () {
-                    setState(() {
-                      AppConfig.autoRefreshInterval =
-                          (AppConfig.autoRefreshInterval < 5)
-                              ? (AppConfig.autoRefreshInterval + 0.1)
-                                  .clamp(0.1, 5.0)
-                              : 5.0;
+              ],
+            ),
+          ),
+          _buildSection(
+            title: '選擇場次',
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    AppConfig.priorityDate ?? '未選擇',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                    icon: Icon(Icons.schedule),
+                    onPressed: () async {
+                      await _selectDate(context);
+                    }),
+              ],
+            ),
+          ),
+          _buildSection(
+            title: '幾張票:',
+            child: Row(
+              children: [
+                GestureDetector(
+                  onLongPress: () {
+                    _startTimer(() {
+                      setState(() {
+                        AppConfig.numberOfTickets =
+                            (AppConfig.numberOfTickets > 0)
+                                ? AppConfig.numberOfTickets - 1
+                                : 0;
+                      });
                     });
                   },
+                  onLongPressUp: () {
+                    _stopTimer();
+                  },
+                  child: IconButton(
+                    icon: Icon(Icons.remove),
+                    onPressed: () {
+                      setState(() {
+                        AppConfig.numberOfTickets =
+                            (AppConfig.numberOfTickets > 0)
+                                ? AppConfig.numberOfTickets - 1
+                                : 1;
+                      });
+                    },
+                  ),
                 ),
-              ),
-            ],
+                Text('${AppConfig.numberOfTickets}'),
+                GestureDetector(
+                  onLongPress: () {
+                    _startTimer(() {
+                      setState(() {
+                        AppConfig.numberOfTickets =
+                            (AppConfig.numberOfTickets < 5)
+                                ? AppConfig.numberOfTickets + 1
+                                : 5;
+                      });
+                    });
+                  },
+                  onLongPressUp: () {
+                    _stopTimer();
+                  },
+                  child: IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: () {
+                      setState(() {
+                        AppConfig.numberOfTickets =
+                            (AppConfig.numberOfTickets < 5)
+                                ? AppConfig.numberOfTickets + 1
+                                : 5;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildSection(
+            title: '優先區域選擇:',
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  AppConfig.selectedArea = value ?? '';
+                });
+              },
+            ),
+          ),
+          _buildSection(
+            title: '預設問答題的答案:',
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  AppConfig.defaultAnswer = value ?? '';
+                });
+              },
+            ),
+          ),
+          _buildSection(
+            title: '自動重新整理秒數:',
+            child: Row(
+              children: [
+                GestureDetector(
+                  onLongPress: () {
+                    _startTimer(() {
+                      setState(() {
+                        AppConfig.autoRefreshInterval =
+                            (AppConfig.autoRefreshInterval > 0)
+                                ? (AppConfig.autoRefreshInterval - 0.1)
+                                    .clamp(0.1, 5.0)
+                                : 0.1;
+                      });
+                    });
+                  },
+                  onLongPressUp: () {
+                    _stopTimer();
+                  },
+                  child: IconButton(
+                    icon: Icon(Icons.remove),
+                    onPressed: () {
+                      setState(() {
+                        AppConfig.autoRefreshInterval =
+                            (AppConfig.autoRefreshInterval > 0)
+                                ? (AppConfig.autoRefreshInterval - 0.1)
+                                    .clamp(0.1, 5.0)
+                                : 0.1;
+                      });
+                    },
+                  ),
+                ),
+                Text('${AppConfig.autoRefreshInterval.toStringAsFixed(1)}'),
+                GestureDetector(
+                  onLongPress: () {
+                    _startTimer(() {
+                      setState(() {
+                        AppConfig.autoRefreshInterval =
+                            (AppConfig.autoRefreshInterval < 5)
+                                ? (AppConfig.autoRefreshInterval + 0.1)
+                                    .clamp(0.1, 5.0)
+                                : 5.0;
+                      });
+                    });
+                  },
+                  onLongPressUp: () {
+                    _stopTimer();
+                  },
+                  child: IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: () {
+                      setState(() {
+                        AppConfig.autoRefreshInterval =
+                            (AppConfig.autoRefreshInterval < 5)
+                                ? (AppConfig.autoRefreshInterval + 0.1)
+                                    .clamp(0.1, 5.0)
+                                : 5.0;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 8.0), // 調整區域之間的垂直間距
+        child,
+        SizedBox(height: 16.0), // 調整區域之間的垂直間距
+      ],
     );
   }
 }
