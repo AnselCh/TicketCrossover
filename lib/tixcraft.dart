@@ -1,3 +1,5 @@
+// tixcraft.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -7,114 +9,23 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_example/settinconfig.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'settinconfig.dart';
 
-void main() => runApp(const MaterialApp(home: WebViewExample()));
-
-const String kNavigationExamplePage = '''
-<!DOCTYPE html><html>
-<head><title>Navigation Delegate Example</title></head>
-<body>
-<p>
-The navigation delegate is set to block navigation to the youtube website.
-</p>
-<ul>
-<ul><a href="https://www.youtube.com/">https://www.youtube.com/</a></ul>
-<ul><a href="https://www.google.com/">https://www.google.com/</a></ul>
-</ul>
-</body>
-</html>
-''';
-
-const String kLocalExamplePage = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<title>Load file or HTML string example</title>
-</head>
-<body>
-
-<h1>Local demo page</h1>
-<p>
-  This is an example page used to demonstrate how to load a local file or HTML
-  string using the <a href="https://tixcraft.com">Flutter
-  webview</a> plugin.
-</p>
-
-</body>
-</html>
-''';
-
-const String kTransparentBackgroundPage = '''
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>Transparent background test</title>
-  </head>
-  <style type="text/css">
-    body { background: transparent; margin: 0; padding: 0; }
-    #container { position: relative; margin: 0; padding: 0; width: 100vw; height: 100vh; }
-    #shape { background: red; width: 200px; height: 200px; margin: 0; padding: 0; position: absolute; top: calc(50% - 100px); left: calc(50% - 100px); }
-    p { text-align: center; }
-  </style>
-  <body>
-    <div id="container">
-      <p>Transparent background test</p>
-      <div id="shape"></div>
-    </div>
-  </body>
-  </html>
-''';
-
-const String kLogExamplePage = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<title>Load file or HTML string example</title>
-</head>
-<body onload="console.log('Logging that the page is loading.')">
-
-<h1>Local demo page</h1>
-<p>
-  This page is used to test the forwarding of console logs to Dart.
-</p>
-
-<style>
-    .btn-group button {
-      padding: 24px; 24px;
-      display: block;
-      width: 25%;
-      margin: 5px 0px 0px 0px;
-    }
-</style>
-
-<div class="btn-group">
-    <button onclick="console.error('This is an error message.')">Error</button>
-    <button onclick="console.warn('This is a warning message.')">Warning</button>
-    <button onclick="console.info('This is a info message.')">Info</button>
-    <button onclick="console.debug('This is a debug message.')">Debug</button>
-    <button onclick="console.log('This is a log message.')">Log</button>
-</div>
-
-</body>
-</html>
-''';
-
-class WebViewExample extends StatefulWidget {
-  const WebViewExample({super.key});
+class TixcraftHome extends StatefulWidget {
+  const TixcraftHome({super.key});
 
   @override
-  State<WebViewExample> createState() => _WebViewExampleState();
+  State<TixcraftHome> createState() => _TixcraftHome();
 }
 
-class _WebViewExampleState extends State<WebViewExample> {
+class _TixcraftHome extends State<TixcraftHome> {
   late final WebViewController _controller;
-
   @override
   void initState() {
     super.initState();
-
-    // #docregion platform_features
+    print("目前售票網${AppConfig.selectProvider}");
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(
@@ -127,10 +38,8 @@ class _WebViewExampleState extends State<WebViewExample> {
 
     final WebViewController controller =
         WebViewController.fromPlatformCreationParams(params);
-    // #enddocregion platform_features
 
     controller
-      // google登入一定要加setUserAgent
       ..setUserAgent(faker.internet.userAgent(osName: 'iOS'))
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Color.fromARGB(0, 255, 255, 255))
@@ -177,13 +86,11 @@ class _WebViewExampleState extends State<WebViewExample> {
       )
       ..loadRequest(Uri.parse('https://tixcraft.com'));
 
-    // #docregion platform_features
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
       (controller.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
     }
-    // #enddocregion platform_features
 
     _controller = controller;
   }
@@ -194,16 +101,23 @@ class _WebViewExampleState extends State<WebViewExample> {
       backgroundColor: Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
         title: const Text('拓元售票 Tixcraft'),
-        // This drop down menu demonstrates that Flutter widgets can be shown over the web view.
         actions: <Widget>[
           NavigationControls(webViewController: _controller),
           SampleMenu(webViewController: _controller),
         ],
       ),
-      body: WebViewWidget(controller: _controller),
+      body: ListView(
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height,
+            child: WebViewWidget(controller: _controller),
+          ),
+        ],
+      ),
       //floatingActionButton: favoriteButton(),
     );
   }
+
 /*
 // 底部愛心icon 點選會顯示目前網址
   Widget favoriteButton() {
@@ -229,12 +143,8 @@ enum MenuOptions {
   addToCache,
   listCache,
   clearCache,
-  navigationDelegate,
   doPostRequest,
-  loadLocalFile,
   loadFlutterAsset,
-  loadHtmlString,
-  transparentBackground,
   setCookie,
   logExample,
 }
@@ -266,18 +176,10 @@ class SampleMenu extends StatelessWidget {
             _onListCache();
           case MenuOptions.clearCache:
             _onClearCache(context);
-          case MenuOptions.navigationDelegate:
-            _onNavigationDelegateExample();
           case MenuOptions.doPostRequest:
             _onDoPostRequest();
-          case MenuOptions.loadLocalFile:
-            _onLoadLocalFileExample();
           case MenuOptions.loadFlutterAsset:
             _onLoadFlutterAssetExample();
-          case MenuOptions.loadHtmlString:
-            _onLoadHtmlStringExample();
-          case MenuOptions.transparentBackground:
-            _onTransparentBackground();
           case MenuOptions.setCookie:
             _onSetCookie();
           case MenuOptions.logExample:
@@ -310,29 +212,12 @@ class SampleMenu extends StatelessWidget {
           child: Text('Clear cache'),
         ),
         const PopupMenuItem<MenuOptions>(
-          value: MenuOptions.navigationDelegate,
-          child: Text('Navigation Delegate example'),
-        ),
-        const PopupMenuItem<MenuOptions>(
           value: MenuOptions.doPostRequest,
           child: Text('Post Request'),
         ),
         const PopupMenuItem<MenuOptions>(
-          value: MenuOptions.loadHtmlString,
-          child: Text('Load HTML string'),
-        ),
-        const PopupMenuItem<MenuOptions>(
-          value: MenuOptions.loadLocalFile,
-          child: Text('Load local file'),
-        ),
-        const PopupMenuItem<MenuOptions>(
           value: MenuOptions.loadFlutterAsset,
           child: Text('Load Flutter Asset'),
-        ),
-        const PopupMenuItem<MenuOptions>(
-          key: ValueKey<String>('ShowTransparentBackgroundExample'),
-          value: MenuOptions.transparentBackground,
-          child: Text('Transparent background example'),
         ),
         const PopupMenuItem<MenuOptions>(
           value: MenuOptions.setCookie,
@@ -412,15 +297,6 @@ class SampleMenu extends StatelessWidget {
     }
   }
 
-  Future<void> _onNavigationDelegateExample() {
-    final String contentBase64 = base64Encode(
-      const Utf8Encoder().convert(kNavigationExamplePage),
-    );
-    return webViewController.loadRequest(
-      Uri.parse('data:text/html;base64,$contentBase64'),
-    );
-  }
-
   Future<void> _onSetCookie() async {
     await cookieManager.setCookie(
       const WebViewCookie(
@@ -444,21 +320,8 @@ class SampleMenu extends StatelessWidget {
     );
   }
 
-  Future<void> _onLoadLocalFileExample() async {
-    final String pathToIndex = await _prepareLocalFile();
-    await webViewController.loadFile(pathToIndex);
-  }
-
   Future<void> _onLoadFlutterAssetExample() {
     return webViewController.loadFlutterAsset('assets/www/index.html');
-  }
-
-  Future<void> _onLoadHtmlStringExample() {
-    return webViewController.loadHtmlString(kLocalExamplePage);
-  }
-
-  Future<void> _onTransparentBackground() {
-    return webViewController.loadHtmlString(kTransparentBackgroundPage);
   }
 
   Widget _getCookieList(String cookies) {
@@ -475,17 +338,6 @@ class SampleMenu extends StatelessWidget {
     );
   }
 
-  static Future<String> _prepareLocalFile() async {
-    final String tmpDir = (await getTemporaryDirectory()).path;
-    final File indexFile = File(
-        <String>{tmpDir, 'www', 'index.html'}.join(Platform.pathSeparator));
-
-    await indexFile.create(recursive: true);
-    await indexFile.writeAsString(kLocalExamplePage);
-
-    return indexFile.path;
-  }
-
   Future<void> _onLogExample() {
     webViewController
         .setOnConsoleMessage((JavaScriptConsoleMessage consoleMessage) {
@@ -493,7 +345,11 @@ class SampleMenu extends StatelessWidget {
           '== JS == ${consoleMessage.level.name}: ${consoleMessage.message}');
     });
 
-    return webViewController.loadHtmlString(kLogExamplePage);
+    return webViewController
+        .setOnConsoleMessage((JavaScriptConsoleMessage consoleMessage) {
+      debugPrint(
+          '== JS == ${consoleMessage.level.name}: ${consoleMessage.message}');
+    });
   }
 }
 

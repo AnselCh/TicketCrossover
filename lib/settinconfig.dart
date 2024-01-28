@@ -1,9 +1,8 @@
+// settinconfig.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:global_configuration/global_configuration.dart';
 import 'activity_fetcher.dart';
-
-var selectedEventName = '';
 
 class AppConfig {
   static const String tixProviderKey = 'tixprovider';
@@ -20,6 +19,11 @@ class AppConfig {
   static const String defaultAnswerKey = 'defaultAnswer';
   //刷新秒數
   static const String autoRefreshIntervalKey = 'autoRefreshInterval';
+  static var selectedEventName = ''; // 新增這一行
+
+  static void updateSelectedEventName(String value) {
+    selectedEventName = value;
+  }
 
   static Future<void> loadAppConfig() async {
     try {
@@ -36,6 +40,9 @@ class AppConfig {
       GlobalConfiguration().getValue(selectProviderKey);
 
   static set selectProvider(String value) {
+    // 清空 selectedEvent 和 priorityDate
+    selectedEventName = '';
+    priorityDate = '';
     GlobalConfiguration().updateValue(selectProviderKey, value);
   }
 
@@ -78,7 +85,7 @@ class AppConfig {
   }
 
   static set defaultAnswer(String value) {
-    GlobalConfiguration().updateValue(selectedAreaKey, value);
+    GlobalConfiguration().updateValue(defaultAnswerKey, value);
   }
 
   static set autoRefreshInterval(double value) {
@@ -152,8 +159,9 @@ class _SettingConfigState extends State<SettingConfig> {
       setState(() {
         // 更新相應的變數，例如：
         AppConfig.selectedEvent = selectedActivity.activityUrl;
-        selectedEventName = selectedActivity.activityName;
-        print(AppConfig.selectedEvent);
+        AppConfig.updateSelectedEventName(
+            selectedActivity.activityName); // 更新 selectedEventName
+        AppConfig.priorityDate = selectedActivity.activityName;
       });
     }
   }
@@ -187,17 +195,19 @@ class _SettingConfigState extends State<SettingConfig> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('選擇活動日期'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: dateList.map((date) {
-            return ListTile(
-              title: Text(date),
-              onTap: () {
-                Navigator.pop(context, date);
-              },
-            );
-          }).toList(),
+        content: Container(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: dateList.map((date) {
+              return ListTile(
+                title: Text(date),
+                onTap: () {
+                  Navigator.pop(context, date);
+                },
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -211,7 +221,8 @@ class _SettingConfigState extends State<SettingConfig> {
   }
 
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
+        child: Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +253,7 @@ class _SettingConfigState extends State<SettingConfig> {
               children: [
                 Expanded(
                   child: Text(
-                    selectedEventName ?? '未選擇',
+                    AppConfig.selectedEventName ?? '未選擇',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -419,7 +430,7 @@ class _SettingConfigState extends State<SettingConfig> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildSection({required String title, required Widget child}) {
