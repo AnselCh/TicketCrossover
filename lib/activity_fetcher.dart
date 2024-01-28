@@ -95,12 +95,13 @@ class ActivityDateFetcher {
         var tdElements = document.querySelectorAll('tr.gridc td');
 
         if (tdElements.isNotEmpty) {
-          // 提取演出時間的部分
+          // 提取演出時間和場次名稱的部分
           List<String> dateList = [];
           for (var i = 0; i < tdElements.length; i += 4) {
             var dateTimeText = tdElements[i].text.trim();
-            // 在這裡你可以進行進一步的處理，例如將字串轉換為 DateTime 對象
-            dateList.add(dateTimeText);
+            var eventName = tdElements[i + 1].text.trim(); // 添加這一行以獲取場次名稱
+            var combinedText = '$dateTimeText - $eventName'; // 合併演出時間和場次名稱
+            dateList.add(combinedText);
           }
 
           return dateList;
